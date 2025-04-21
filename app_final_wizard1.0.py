@@ -5,30 +5,62 @@ from io import StringIO
 
 # ── Page Configuration & CSS ─────────────────────────────────────────────────
 st.set_page_config(layout="wide", page_title="SMART CVD Risk Reduction")
-st.markdown("""<style>
-.header { position: sticky; top: 0; background: #f7f7f7; padding: 10px; display: flex; justify-content: flex-end; z-index: 100; }
-.card { background: #fff; padding: 20px; margin-bottom: 20px; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
-</style>""", unsafe_allow_html=True)
+# Custom styling including watermark, header, and cards
+st.markdown('''<style>
+  .stApp::before {
+    content: "";
+    background: url(logo.png) no-repeat center center;
+    background-size: 200px 200px;
+    opacity: 0.1;
+    position: absolute;
+    top: 20%; left: 50%; transform: translate(-50%, -50%);
+    z-index: 0;
+  }
+  .header {
+    position: sticky; top: 0;
+    background: #f7f7f7;
+    padding: 10px;
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+    z-index: 100;
+  }
+  .card {
+    background: #fff;
+    padding: 20px;
+    margin-bottom: 20px;
+    border-radius: 8px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    position: relative;
+    z-index: 1;
+  }
+  /* Remove default expander borders */
+  .streamlit-expanderHeader {
+    border: none;
+  }
+''', unsafe_allow_html=True)
 
-# ── Header with Logo ──────────────────────────────────────────────────────────
+# ── Header with compact logo ─────────────────────────────────────────────────
 st.markdown('<div class="header">', unsafe_allow_html=True)
 if os.path.exists("logo.png"):
-    st.image("logo.png", width=150)
+    st.image("logo.png", width=150, use_column_width=False)
 else:
     st.warning("⚠️ Please upload 'logo.png' in the app directory.")
 st.markdown('</div>', unsafe_allow_html=True)
 
 # ── Sidebar: Demographics & Risk Factors ───────────────────────────────────────
-st.sidebar.header("Patient Demographics & Risk Factors")
+st.sidebar.header("Patient Demographics")
 age = st.sidebar.slider("Age (years)", 30, 90, 60, key="age")
 sex = st.sidebar.radio("Sex", ["Male", "Female"], key="sex")
 weight = st.sidebar.number_input("Weight (kg)", 40.0, 200.0, 75.0, key="weight")
 height = st.sidebar.number_input("Height (cm)", 140.0, 210.0, 170.0, key="height")
 bmi = weight / ((height / 100) ** 2)
 st.sidebar.markdown(f"**BMI:** {bmi:.1f} kg/m²")
+
+st.sidebar.header("Risk Factors")
 smoker = st.sidebar.checkbox("Current smoker", key="smoker")
 diabetes = st.sidebar.checkbox("Diabetes", key="diabetes")
-st.sidebar.markdown("**Vascular Disease (select all that apply)**")
+st.sidebar.write("Known vascular disease in the following territories:")
 vasc_cor = st.sidebar.checkbox("Coronary artery disease", key="vasc_cor")
 vasc_cer = st.sidebar.checkbox("Cerebrovascular disease", key="vasc_cer")
 vasc_per = st.sidebar.checkbox("Peripheral artery disease", key="vasc_per")
@@ -58,8 +90,7 @@ def estimate_lifetime_risk(age, r10):
     return min((1 - (1 - annual) ** years) * 100, 95.0)
 
 # Formatting helper
-def fmt(x):
-    return f"{x:.1f}%"
+def fmt(x): return f"{x:.1f}%"
 
 # ── Main: Laboratory Results ───────────────────────────────────────────────────
 with st.expander("Laboratory Results", expanded=True):
@@ -74,33 +105,66 @@ with st.expander("Laboratory Results", expanded=True):
     st.markdown('</div>', unsafe_allow_html=True)
 
 # ── Main: Therapies ───────────────────────────────────────────────────────────
-with st.expander("Therapies"):
+with st.expander("Therapies", expanded=True):
     st.markdown('<div class="card">', unsafe_allow_html=True)
-    st.subheader("Pre-admission Lipid-Lowering")
-    pre_stat = st.selectbox("Statin", ["None", "Atorvastatin 80 mg", "Rosuvastatin 20 mg"], key="ther_pre_stat")
-    pre_ez = st.checkbox("Ezetimibe 10 mg", key="ther_pre_ez")
-    pre_bemp = st.checkbox("Bempedoic acid", key="ther_pre_bemp")
+    st.subheader("Pre-admission Lipid-Lowering Therapy")
+    # Pre-admission lipid therapies - tick all that apply
+    pre_simv_low = st.checkbox("Simvastatin 20 mg", key="pre_simv_low")
+    pre_simv_high = st.checkbox("Simvastatin 40 mg", key="pre_simv_high")
+    pre_atorva_low = st.checkbox("Atorvastatin 10 mg", key="pre_atorva_low")
+    pre_atorva_high = st.checkbox("Atorvastatin 80 mg", key="pre_atorva_high")
+    pre_rosu_low = st.checkbox("Rosuvastatin 5 mg", key="pre_rosu_low")
+    pre_rosu_high = st.checkbox("Rosuvastatin 20 mg", key="pre_rosu_high")
+    pre_ez = st.checkbox("Ezetimibe 10 mg", key="pre_ez")
+    pre_bemp = st.checkbox("Bempedoic acid", key="pre_bemp")
+    pre_pcsk9 = st.checkbox("PCSK9 inhibitor", key="pre_pcsk9")
+    pre_sirna = st.checkbox("siRNA", key="pre_sirna")
     st.markdown("---")
-    st.subheader("Initiate/Intensify Therapy")
-    new_stat = st.selectbox("Statin change", ["None", "Atorvastatin 80 mg", "Rosuvastatin 20 mg"], key="ther_new_stat")
-    new_ez = st.checkbox("Add Ezetimibe", key="ther_new_ez")
-    new_bemp = st.checkbox("Add Bempedoic acid", key="ther_new_bemp")
+    st.subheader("New / Intensified Lipid-Lowering Therapy")
+    new_simv_low = st.checkbox("Start Simvastatin 20 mg", key="new_simv_low")
+    new_simv_high = st.checkbox("Start Simvastatin 40 mg", key="new_simv_high")
+    new_atorva_low = st.checkbox("Start Atorvastatin 10 mg", key="new_atorva_low")
+    new_atorva_high = st.checkbox("Start Atorvastatin 80 mg", key="new_atorva_high")
+    new_rosu_low = st.checkbox("Start Rosuvastatin 5 mg", key="new_rosu_low")
+    new_rosu_high = st.checkbox("Start Rosuvastatin 20 mg", key="new_rosu_high")
+    new_ez = st.checkbox("Add Ezetimibe 10 mg", key="new_ez")
+    new_bemp = st.checkbox("Add Bempedoic acid", key="new_bemp")
+    # Calculate post-LDL considering pre and new therapies
+    therapies = []
+    # mapping efficacy
+    E = {"Simvastatin 20 mg":0.1,"Simvastatin 40 mg":0.2,
+         "Atorvastatin 10 mg":0.3,"Atorvastatin 80 mg":0.5,
+         "Rosuvastatin 5 mg":0.25,"Rosuvastatin 20 mg":0.55,
+         "Ezetimibe 10 mg":0.2,"Bempedoic acid":0.18,
+         "PCSK9 inhibitor":0.6,"siRNA":0.55}
+    # collect pre therapies
+    for name, flag in [("Simvastatin 20 mg", pre_simv_low),("Simvastatin 40 mg", pre_simv_high),
+                       ("Atorvastatin 10 mg", pre_atorva_low),("Atorvastatin 80 mg", pre_atorva_high),
+                       ("Rosuvastatin 5 mg", pre_rosu_low),("Rosuvastatin 20 mg", pre_rosu_high),
+                       ("Ezetimibe 10 mg", pre_ez),("Bempedoic acid", pre_bemp),
+                       ("PCSK9 inhibitor", pre_pcsk9),("siRNA", pre_sirna)]:
+        if flag:
+            therapies.append(name)
+    # collect new therapies
+    for name, flag in [("Simvastatin 20 mg", new_simv_low),("Simvastatin 40 mg", new_simv_high),
+                       ("Atorvastatin 10 mg", new_atorva_low),("Atorvastatin 80 mg", new_atorva_high),
+                       ("Rosuvastatin 5 mg", new_rosu_low),("Rosuvastatin 20 mg", new_rosu_high),
+                       ("Ezetimibe 10 mg", new_ez),("Bempedoic acid", new_bemp)]:
+        if flag:
+            therapies.append(name)
+    # baseline
     post_ldl = ldl
-    reductions = {"Atorvastatin 80 mg":0.50, "Rosuvastatin 20 mg":0.55, "Ezetimibe 10 mg":0.20, "Bempedoic acid":0.18}
-    for drug in [pre_stat, new_stat]:
-        if drug in reductions:
-            post_ldl *= (1 - reductions[drug])
-    if pre_ez or new_ez:
-        post_ldl *= (1 - reductions["Ezetimibe 10 mg"])
-    if pre_bemp or new_bemp:
-        post_ldl *= (1 - reductions["Bempedoic acid"])
-    post_ldl = max(post_ldl, 0.5)
-    pcsk9 = st.checkbox("PCSK9 inhibitor", key="ther_pcsk9", disabled=(post_ldl <= 1.8), help="FOURIER trial")
-    inclis = st.checkbox("Inclisiran", key="ther_inclis", disabled=(post_ldl <= 1.8), help="ORION-10 trial")
-    st.markdown('</div>', unsafe_allow_html=True)
-
-# ── Main: Results & Recommendations ────────────────────────────────────────────
-with st.expander("Results & Recommendations"):
+    for t in therapies:
+        post_ldl *= (1 - E.get(t,0))
+    post_ldl = max(post_ldl,0.5)
+    # gated PCSK9i and siRNA
+    pcsk9_allowed = post_ldl > 1.8
+    sirna_allowed = post_ldl > 1.8
+    if not pcsk9_allowed:
+        st.info("PCSK9 inhibitors only if LDL >1.8 mmol/L post-therapy.")
+    if not sirna_allowed:
+        st.info("siRNA only if LDL >1.8 mmol/L post-therapy.")
+    st.markdown('</div>', unsafe_allow_html=True), expanded=False):
     st.markdown('<div class="card">', unsafe_allow_html=True)
     vasc = vasc_count
     r10 = estimate_10y_risk(age, sex, sbp, total_chol, hdl, smoker, diabetes, egfr, crp, vasc)
@@ -136,3 +200,11 @@ st.markdown("---")
 st.markdown("Created by Samuel Panday — 21/04/2025")
 st.markdown("PRIME team, King's College Hospital")
 st.markdown("For informational purposes; not a substitute for medical advice.")
+"""
+
+# Write to file
+file_path = Path("/mnt/data/app_final_wizard.py")
+file_path.write_text(script)
+
+# Return path
+file_path
